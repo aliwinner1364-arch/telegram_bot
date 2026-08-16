@@ -26,7 +26,7 @@ CHANNELS = [
 
 VIDEO_URL = "https://www.w3schools.com/html/mov_bbb.mp4"
 
-DELETE_AFTER_SECONDS = 10
+DELETE_AFTER_SECONDS = 30
 
 PORT = int(os.getenv("PORT", "10000"))
 
