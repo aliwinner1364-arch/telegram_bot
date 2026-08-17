@@ -36,7 +36,7 @@ SOURCE_CHANNEL_ID = int(os.getenv("SOURCE_CHANNEL_ID", "0"))
 # deep link here whenever a new video is captured from the source channel.
 ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
 
-DELETE_AFTER_SECONDS = 30
+DELETE_AFTER_SECONDS = 20
 
 PORT = int(os.getenv("PORT", "10000"))
 
@@ -195,20 +195,6 @@ def membership_keyboard(code=None):
     return InlineKeyboardMarkup(keyboard)
 
 
-def restart_keyboard(code=None):
-
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "🔄 دریافت دوباره این ویدیو",
-                callback_data=f"restart:{_payload(code)}"
-            )
-        ],
-    ]
-
-    return InlineKeyboardMarkup(keyboard)
-
-
 # =========================
 # Shared flow: check membership then deliver video
 # =========================
@@ -272,7 +258,7 @@ async def start(
 
 
 # =========================
-# Button Handler (join-check + restart)
+# Button Handler (join-check)
 # =========================
 
 async def button_handler(
@@ -351,9 +337,9 @@ async def channel_video_handler(
             await context.bot.send_message(
                 chat_id=ADMIN_CHAT_ID,
                 text=(
-                    "✅ ویدیوی جدید ثبت شد.\n\n"
-                    "این لینک اختصاصی همین ویدیوست — آن را به‌عنوان "
-                    "کپشن زیر عکس در کانال اصلی بگذار:\n\n"
+                    "✅ New video captured.\n\n"
+                    "This is its dedicated link — use it as the caption "
+                    "under the photo in the main channel:\n\n"
                     f"{link}"
                 ),
             )
@@ -383,8 +369,8 @@ async def send_media(
         await context.bot.send_message(
             chat_id=chat_id,
             text=(
-                "⚠️ این ویدیو یافت نشد یا فعلاً چیزی تنظیم نشده است. "
-                "لطفاً بعداً دوباره تلاش کنید."
+                "⚠️ This video could not be found, or nothing has been "
+                "configured yet. Please try again later."
             )
         )
 
@@ -396,9 +382,9 @@ async def send_media(
             "🎬 Here is your requested video!\n\n"
             "⚠️ IMPORTANT\n"
             "This video will be automatically deleted "
-            "from this chat after 30 seconds.\n\n"
+            "from this chat after 20 seconds.\n\n"
             "If you want to keep it, please save or "
-            "forward the video before the 30 seconds expire."
+            "forward the video before the 20 seconds expire."
         )
 
         sent_message = await context.bot.copy_message(
@@ -423,13 +409,6 @@ async def send_media(
 
             logger.warning("Could not delete video: %s", e)
 
-        # Offer a restart button so the user can request it again
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="می‌خواهید دوباره ویدیو را دریافت کنید؟",
-            reply_markup=restart_keyboard(code)
-        )
-
     except Exception as e:
 
         logger.error("Could not send video: %s", e)
@@ -450,33 +429,6 @@ async def send_media(
                 "Could not send error message: %s",
                 send_error
             )
-
-
-# =========================
-# Restart button handler
-# =========================
-
-async def restart_handler(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    query = update.callback_query
-
-    if not query:
-        return
-
-    await query.answer()
-
-    payload = query.data.split(":", 1)[1] if ":" in query.data else "latest"
-    code = int(payload) if payload.isdigit() else None
-
-    await deliver_or_ask_join(
-        chat_id=query.message.chat_id,
-        user_id=query.from_user.id,
-        context=context,
-        code=code,
-    )
 
 
 # =========================
@@ -509,10 +461,6 @@ async def main():
 
     application.add_handler(
         CallbackQueryHandler(button_handler, pattern=r"^check_membership:")
-    )
-
-    application.add_handler(
-        CallbackQueryHandler(restart_handler, pattern=r"^restart:")
     )
 
     application.add_handler(
@@ -562,3 +510,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
